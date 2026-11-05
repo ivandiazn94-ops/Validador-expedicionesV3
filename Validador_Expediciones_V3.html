@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Validador Expediciones V3</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#f3f4f6;margin:0;padding:15px;text-align:center}
+.card{max-width:700px;margin:auto;background:white;padding:20px;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+#reader{width:100%;max-width:500px;margin:auto}
+input{width:95%;padding:12px;font-size:18px;margin:8px;text-align:center}
+button{padding:14px 22px;font-size:18px;border:none;border-radius:8px;background:#0078d4;color:white;margin:8px}
+#estado{margin-top:15px;padding:20px;font-size:34px;font-weight:bold;border-radius:12px}
+.ok{background:#16a34a;color:white}
+.ko{background:#dc2626;color:white}
+#paso{font-size:22px;font-weight:bold;margin:10px}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>Validador de Expediciones V3</h2>
+<div id="paso">Pulse INICIAR CÁMARA</div>
+<div id="reader"></div>
+<input id="c1" readonly placeholder="Código 1">
+<input id="c2" readonly placeholder="Código 2">
+<div id="estado"></div>
+<button onclick="iniciarCamara()">Iniciar cámara</button>
+<button onclick="nuevaValidacion()">Nueva validación</button>
+</div>
+<script>
+let qrScanner;
+let codigo1='';
+let codigo2='';
+let bloqueo=false;
+
+function beep(freq,duration){
+ const ctx=new(window.AudioContext||window.webkitAudioContext)();
+ const osc=ctx.createOscillator();
+ const gain=ctx.createGain();
+ osc.connect(gain); gain.connect(ctx.destination);
+ osc.frequency.value=freq; osc.start();
+ gain.gain.setValueAtTime(0.1,ctx.currentTime);
+ osc.stop(ctx.currentTime+duration/1000);
+}
+
+function procesarCodigo(texto){
+ if(bloqueo) return;
+ bloqueo=true;
+
+ if(!codigo1){
+   codigo1=texto;
+   document.getElementById('c1').value=texto;
+   document.getElementById('paso').innerHTML='✅ Primer código leído. Escanee el segundo código';
+ } else if(!codigo2){
+   codigo2=texto;
+   document.getElementById('c2').value=texto;
+   validar();
+ }
+ setTimeout(()=>{bloqueo=false;},1200);
+}
+
+function validar(){
+ const estado=document.getElementById('estado');
+ if(codigo1===codigo2){
+   estado.className='ok';
+   estado.innerHTML='✅ COINCIDEN';
+   beep(900,250);
+   if(navigator.vibrate) navigator.vibrate([150,100,150]);
+ }else{
+   estado.className='ko';
+   estado.innerHTML='❌ NO COINCIDEN';
+   beep(250,500);
+   if(navigator.vibrate) navigator.vibrate([500]);
+ }
+ }
+
+function nuevaValidacion(){
+ codigo1=''; codigo2='';
+ document.getElementById('c1').value='';
+ document.getElementById('c2').value='';
+ document.getElementById('estado').innerHTML='';
+ document.getElementById('estado').className='';
+ document.getElementById('paso').innerHTML='Escanee el primer código';
+ }
+
+function iniciarCamara(){
+ if(qrScanner) return;
+ document.getElementById('paso').innerHTML='Escanee el primer código';
+ qrScanner=new Html5Qrcode('reader');
+ qrScanner.start({facingMode:'environment'},{fps:10,qrbox:250},(decodedText)=>procesarCodigo(decodedText));
+ }
+</script>
+</body>
+</html>
